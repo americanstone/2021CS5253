@@ -8,13 +8,6 @@ object Assignment {
     enum class Name {
         Assignment1a,
         Assignment1b,
-        Assignment2a,
-        Assignment2b,
-        Assignment2c,
-        Assignment3a,
-        Assignment3b,
-        Assignment4,
-        Assignmentrx,
         All
     }
 
