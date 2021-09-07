@@ -12,7 +12,6 @@ import java.util.stream.StreamSupport;
 
 import static edu.vanderbilt.imagecrawler.utils.Assignment.Name.Assignment1a;
 import static edu.vanderbilt.imagecrawler.utils.Assignment.Name.Assignment1b;
-import static edu.vanderbilt.imagecrawler.utils.Assignment.Name.Assignment2a;
 import static edu.vanderbilt.imagecrawler.utils.Assignment.isAssignment;
 import static edu.vanderbilt.imagecrawler.utils.Assignment.isGraduate;
 import static edu.vanderbilt.imagecrawler.utils.Assignment.isUndergraduate;
@@ -367,7 +366,7 @@ public class UnsynchronizedArray<E> implements Array<E> {
      * @return null (not implemented in this base class)
      */
     public Spliterator<E> spliterator() {
-        if (isGraduate(Assignment1b) || isUndergraduate(Assignment2a)) {
+        if (isGraduate(Assignment1b)) {
             // TODO - you fill in here if your assignment matches either condition.
             return null;
         } else {
