@@ -118,7 +118,7 @@ public class SequentialStreamsCrawler // Loaded via reflection
     protected int processImage(URL url) {
         // Create and use a Java sequential stream to:
         // 1. Use a factory method to create a one-element stream
-        //    containing just the pageUri.
+        //    containing just the url.
         // 2. Get or download the image from the given url.
         // 3. Filter out a missing (null) page.
         // 4. Transform the image and return a count of the number of
@@ -140,7 +140,7 @@ public class SequentialStreamsCrawler // Loaded via reflection
      */
     protected int transformImage(Image image) {
         // Create and use a Java sequential stream as follows:
-        // 1. Convert the List of transforms into a parallel stream.
+        // 1. Convert the List of transforms into a sequential stream.
         // 2. Attempt to create a new cache item for each image,
         //    filtering out any image that has already been locally
         //    cached.
