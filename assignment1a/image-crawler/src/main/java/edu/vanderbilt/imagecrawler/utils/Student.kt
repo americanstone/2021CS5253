@@ -14,7 +14,7 @@ object Student {
      * TODO: (Undergraduate students) - remove "Graduate" from the set below.
      */
     @JvmStatic
-    private var type = setOf(Undergraduate)
+    private var type = setOf(Graduate, Undergraduate)
 
     @JvmStatic
     fun `is`(type: Type) = this.type.contains(type)
