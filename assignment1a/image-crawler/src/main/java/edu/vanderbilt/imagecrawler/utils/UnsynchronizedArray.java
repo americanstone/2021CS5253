@@ -442,8 +442,9 @@ public class UnsynchronizedArray<E> implements Array<E> {
         if (isGraduate(Assignment1a)) {
             // TODO - Graduate students you fill in here
             //  using a for-each loop for assignment 1a.
-            for(Iterator it = iterator(); it.hasNext();){
-                action.accept((E)it.next());
+            Iterator<E> it = iterator();
+            while (it.hasNext()){
+                action.accept(it.next());
             }
         } else if (isGraduate(Assignment1b)) {
             // TODO - Graduate students you fill in here using the
@@ -452,10 +453,8 @@ public class UnsynchronizedArray<E> implements Array<E> {
         } else if (isUndergraduate(Assignment1a)) {
             // TODO - Undergraduate students you fill in here using
             //  a simple for loop for assignment 1a.
-            final E[] elementData = (E[]) this.mElementData;
-
-            for(Object o : elementData){
-                action.accept((E)o);
+            for(int i = 0; i < mSize; i++){
+                action.accept((E)mElementData[i]);
             }
         } else if (isUndergraduate(Assignment1b)) {
             // TODO - Undergraduate students you fill in here
