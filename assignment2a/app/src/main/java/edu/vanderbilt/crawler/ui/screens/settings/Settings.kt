@@ -15,7 +15,7 @@ import edu.vanderbilt.imagecrawler.utils.Options
  */
 internal object Settings {
     /** Default pref values */
-    private val DEFAULT_CRAWL_STRATEGY = CrawlerType.SEQUENTIAL_LOOPS
+    private val DEFAULT_CRAWL_STRATEGY = CrawlerType.SEQUENTIAL_STREAMS
     private const val DEFAULT_LOCAL_CRAWL = false
     const val DEFAULT_CRAWL_DEPTH = 3
     private val DEFAULT_TRANSFORM_TYPES = Transform.Type.values().toList()

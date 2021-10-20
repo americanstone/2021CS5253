@@ -26,7 +26,7 @@ public class ArrayCollector<T>
      */
     public static <E> Collector<E, ?, Array<E>> toArray() {
         // TODO -- you fill in here replacing this statement with your solution.
-        return null;
+        return new ArrayCollector<>();
     }
 
     /**
@@ -40,11 +40,11 @@ public class ArrayCollector<T>
         if (isGraduate()) {
             // TODO - Graduate students fill in here using a
             //  SynchronizedArray (replacing null with the proper code).
-            return null;
+            return SynchronizedArray::new;
         } else if (isUndergraduate()) {
             // TODO - Undergraduate students fill in here using an
             //  UnsynchronizedArray (replacing null with the proper code).
-            return null;
+            return UnsynchronizedArray::new;
         }
 
         throw new IllegalStateException("unreachable");
@@ -59,7 +59,7 @@ public class ArrayCollector<T>
     @Override
     public BiConsumer<Array<T>, T> accumulator() {
         // TODO -- you fill in here replacing this statement with your solution.
-        return null;
+        return Array::add;
     }
 
     /**
@@ -73,7 +73,10 @@ public class ArrayCollector<T>
     public BinaryOperator<Array<T>> combiner() {
         if (isUndergraduate()) {
             // TODO -- you fill in here replacing this statement with your solution.
-            return null;
+            return (a,b) -> {
+                a.addAll(b);
+                return a;
+            };
         } else if (isGraduate()) {
             // Graduate students should not change this method.
             return null;
@@ -91,7 +94,16 @@ public class ArrayCollector<T>
     @Override
     public Function<Array<T>, Array<T>> finisher() {
         // TODO - fill in here.
-        throw new IllegalStateException("Replace this line.");
+        if (isGraduate()) {
+            // TODO - Graduate students fill in here (replacing null
+            // with the proper code).
+            return null;
+        } else if (isUndergraduate()) {
+            // TODO - Undergraduate students fill in here (replacing
+            // null with the proper code).
+            return Array::toUnsynchronizedArray;
+        }
+        throw new IllegalStateException("unreachable");
     }
 
     /**
@@ -109,11 +121,15 @@ public class ArrayCollector<T>
         if (isGraduate()) {
             // TODO - Graduate students fill in here (replacing null
             // with the proper code).
-            return null;
+            return Collections.unmodifiableSet(EnumSet.of(
+                    Collector.Characteristics.CONCURRENT,
+                    Collector.Characteristics.UNORDERED,
+                    Collector.Characteristics.IDENTITY_FINISH));
         } else if (isUndergraduate()) {
             // TODO - Undergraduate students fill in here (replacing
             // null with the proper code).
-            return null;
+            return Collections.unmodifiableSet(EnumSet.of(
+                    Collector.Characteristics.IDENTITY_FINISH));
         }
 
         throw new IllegalStateException("unreachable");

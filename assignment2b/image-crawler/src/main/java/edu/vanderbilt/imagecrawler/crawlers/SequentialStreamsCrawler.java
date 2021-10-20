@@ -1,14 +1,14 @@
 package edu.vanderbilt.imagecrawler.crawlers;
 
-import static edu.vanderbilt.imagecrawler.utils.Crawler.Type.IMAGE;
-import static edu.vanderbilt.imagecrawler.utils.Crawler.Type.PAGE;
-
 import java.net.URL;
 import java.util.Objects;
 import java.util.stream.Stream;
 
 import edu.vanderbilt.imagecrawler.utils.Crawler;
 import edu.vanderbilt.imagecrawler.utils.Image;
+
+import static edu.vanderbilt.imagecrawler.utils.Crawler.Type.IMAGE;
+import static edu.vanderbilt.imagecrawler.utils.Crawler.Type.PAGE;
 
 /**
  * This class uses Java sequential streams features to perform an
@@ -26,7 +26,7 @@ public class SequentialStreamsCrawler // Loaded via reflection
      *
      * @param pageUri The URI that's being crawled at this point
      * @param depth   The current depth of the recursive processing
-     * @return The count of the number of images processed at this depth
+     * @return The number of images processed at this depth
      */
     @Override
     protected int performCrawl(String pageUri, int depth) {
@@ -48,7 +48,22 @@ public class SequentialStreamsCrawler // Loaded via reflection
         //    processed images from the one-element stream.
 
         // TODO -- you fill in here replacing this statement with your solution.
-        return 0;
+        return Stream.of(pageUri)
+                .filter(uri -> {
+                        if (depth > mMaxDepth) {
+                            log("Exceeded max depth of " + mMaxDepth);
+                            return false;
+                        }
+                        if (!mUniqueUris.putIfAbsent(uri)) {
+                            log("Already processed " + uri);
+                            // Return 0 if we've already examined this uri.
+                            return false;
+                        }
+                        return true;
+                    })
+                .mapToInt(validPageUri -> crawlPage(validPageUri, depth))
+                .findFirst()
+                .orElse(0);
     }
 
     /**
@@ -79,7 +94,12 @@ public class SequentialStreamsCrawler // Loaded via reflection
         // and stored.
         // TODO -- you fill in here replacing this statement with your
         // solution.
-        return 0;
+        return Stream.of(pageUri)
+                .map(mWebPageCrawler::getPage)
+                .filter(Objects::nonNull)
+                .mapToInt(page -> processPage(page, depth))
+                .findFirst()
+                .orElse(0);
     }
 
     /**
@@ -88,7 +108,7 @@ public class SequentialStreamsCrawler // Loaded via reflection
      * hyperlinks accessible from this page via performCrawl(), and
      * (3) return the sum of all images processed during the crawl.
      *
-     * @param page  The page containing HTML
+     * @param page  The page containing HTNML
      * @param depth The current depth of the recursive processing
      * @return The count of the number of images processed
      */
@@ -105,7 +125,16 @@ public class SequentialStreamsCrawler // Loaded via reflection
         // Return a count of of all images processed on/from this page.
         // TODO -- you fill in here replacing this statement with your
         // solution.
-        return 0;
+       return page.getPageElements(IMAGE, PAGE).stream()
+                .mapToInt(e -> {
+                        if (e.getType() == IMAGE){
+                             return processImage(e.getURL());
+                        }else {
+                            // if a page start over
+                            return performCrawl(e.getUrl(), depth+1);
+                        }
+                    })
+                .sum();
     }
 
     /**
@@ -118,7 +147,7 @@ public class SequentialStreamsCrawler // Loaded via reflection
     protected int processImage(URL url) {
         // Create and use a Java sequential stream to:
         // 1. Use a factory method to create a one-element stream
-        //    containing just the pageUri.
+        //    containing just the url.
         // 2. Get or download the image from the given url.
         // 3. Filter out a missing (null) page.
         // 4. Transform the image and return a count of the number of
@@ -127,7 +156,11 @@ public class SequentialStreamsCrawler // Loaded via reflection
 
         // TODO -- you fill in here replacing this statement with your
         // solution.
-        return 0;
+        return Stream.of(url)
+                .map(this::getOrDownloadImage)
+                .filter(Objects::nonNull)
+                .mapToInt(this::transformImage)
+                .sum();
     }
 
     /**
@@ -136,11 +169,11 @@ public class SequentialStreamsCrawler // Loaded via reflection
      * successfully transformed images.
      *
      * @param image The image to transform
-     * @return The count of the non-null transformed images
+     * @return The count of all non-null transformed images
      */
     protected int transformImage(Image image) {
         // Create and use a Java sequential stream as follows:
-        // 1. Convert the List of transforms into a parallel stream.
+        // 1. Convert the List of transforms into a sequential stream.
         // 2. Attempt to create a new cache item for each image,
         //    filtering out any image that has already been locally
         //    cached.
@@ -150,6 +183,10 @@ public class SequentialStreamsCrawler // Loaded via reflection
         // 5. Count the number of non-null images that were transformed.
 
         // TODO -- you fill in here replacing this statement with your solution.
-        return 0;
+        return (int)mTransforms.stream()
+                .filter(transform -> createNewCacheItem(image, transform))
+                .map(validTransform -> applyTransform(validTransform, image))
+                .filter(Objects::nonNull)
+                .count();
     }
 }

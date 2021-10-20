@@ -2,6 +2,7 @@ package edu.vanderbilt.imagecrawler.utils;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.ConcurrentModificationException;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.Spliterator;
@@ -12,7 +13,6 @@ import java.util.stream.StreamSupport;
 
 import static edu.vanderbilt.imagecrawler.utils.Assignment.Name.Assignment1a;
 import static edu.vanderbilt.imagecrawler.utils.Assignment.Name.Assignment1b;
-import static edu.vanderbilt.imagecrawler.utils.Assignment.Name.Assignment2a;
 import static edu.vanderbilt.imagecrawler.utils.Assignment.isAssignment;
 import static edu.vanderbilt.imagecrawler.utils.Assignment.isGraduate;
 import static edu.vanderbilt.imagecrawler.utils.Assignment.isUndergraduate;
@@ -71,7 +71,14 @@ public class UnsynchronizedArray<E> implements Array<E> {
      */
     public UnsynchronizedArray(int initialCapacity) {
         // TODO -- you fill in here.
-        
+        if (initialCapacity > 0) {
+            this.mElementData = new Object[initialCapacity];
+        } else if (initialCapacity == 0) {
+            this.mElementData = EMPTY_ELEMENTDATA;
+        } else {
+            throw new IllegalArgumentException("Illegal Capacity: "+
+                    initialCapacity);
+        }
     }
 
     /**
@@ -84,7 +91,15 @@ public class UnsynchronizedArray<E> implements Array<E> {
      */
     public UnsynchronizedArray(Collection<? extends E> c) {
         // TODO -- you fill in here.
-        
+        mElementData = c.toArray();
+        if ((mSize = mElementData.length) != 0) {
+            // c.toArray might (incorrectly) not return Object[] (see 6260652)
+            if (mElementData.getClass() != Object[].class)
+                mElementData = Arrays.copyOf(mElementData, mSize, Object[].class);
+        } else {
+            // replace with empty array.
+            this.mElementData = EMPTY_ELEMENTDATA;
+        }
     }
 
     /**
@@ -94,7 +109,7 @@ public class UnsynchronizedArray<E> implements Array<E> {
      */
     public boolean isEmpty() {
         // TODO -- you fill in here (replace 'return false' with proper code).
-        return false;
+        return mSize == 0;
     }
 
     /**
@@ -104,7 +119,7 @@ public class UnsynchronizedArray<E> implements Array<E> {
      */
     public int size() {
         // TODO -- you fill in here (replace 'return 0' with proper code).
-        return 0;
+        return mSize;
     }
 
     /**
@@ -119,6 +134,15 @@ public class UnsynchronizedArray<E> implements Array<E> {
     @Override
     public int indexOf(Object o) {
         // TODO -- you fill in here (replace 'return -1' with proper code).
+        if (o == null) {
+            for (int i = 0; i < mSize; i++)
+                if (mElementData[i]==null)
+                    return i;
+        } else {
+            for (int i = 0; i < mSize; i++)
+                if (o.equals(mElementData[i]))
+                    return i;
+        }
         return -1;
     }
 
@@ -137,7 +161,12 @@ public class UnsynchronizedArray<E> implements Array<E> {
      */
     public boolean addAll(Collection<? extends E> c) {
         // TODO -- you fill in here (replace 'return false' with proper code).
-        return false;
+        Object[] a = c.toArray();
+        int numNew = a.length;
+        ensureCapacityInternal(mSize + numNew);  // Increments modCount
+        System.arraycopy(a, 0, mElementData, mSize, numNew);
+        mSize += numNew;
+        return numNew != 0;
     }
 
     /**
@@ -155,6 +184,13 @@ public class UnsynchronizedArray<E> implements Array<E> {
      */
     public boolean addAll(Array<E> a) {
         // TODO -- you fill in here (replace 'return false' with proper code).
+        if(!a.isEmpty()){
+            int numNew = a.size();
+            ensureCapacityInternal(mSize + numNew);  // Increments modCount
+            System.arraycopy(a.uncheckedToArray(), 0, mElementData, mSize, numNew);
+            mSize += numNew;
+            return numNew != 0;
+        }
         return false;
     }
 
@@ -169,7 +205,17 @@ public class UnsynchronizedArray<E> implements Array<E> {
      */
     public E remove(int index) {
         // TODO -- you fill in here (replace 'return null' with proper code).
-        return null;
+        rangeCheck(index);
+
+        E oldValue = (E)mElementData[index];
+
+        int numMoved = mSize - index - 1;
+        if (numMoved > 0)
+            System.arraycopy(mElementData, index+1, mElementData, index,
+                    numMoved);
+        mElementData[--mSize] = null; // clear to let GC do its work
+
+        return oldValue;
     }
 
     /**
@@ -183,7 +229,8 @@ public class UnsynchronizedArray<E> implements Array<E> {
     @Override
     public void rangeCheck(int index) {
         // TODO -- you fill in here.
-        
+        if (index >= mSize || index < 0)
+            throw new IndexOutOfBoundsException();
     }
 
     /**
@@ -195,7 +242,8 @@ public class UnsynchronizedArray<E> implements Array<E> {
      */
     public E get(int index) {
         // TODO -- you fill in here (replace 'return null' with proper code).
-        return null;
+        rangeCheck(index);
+        return (E) mElementData[index];
     }
 
     /**
@@ -209,7 +257,10 @@ public class UnsynchronizedArray<E> implements Array<E> {
      */
     public E set(int index, E element) {
         // TODO -- you fill in here (replace 'return null' with proper code).
-        return null;
+        rangeCheck(index);
+        E oldValue = (E)mElementData[index];
+        mElementData[index] = element;
+        return oldValue;
     }
 
     /**
@@ -220,7 +271,9 @@ public class UnsynchronizedArray<E> implements Array<E> {
      */
     public boolean add(E element) {
         // TODO -- you fill in here (replace 'return false' with proper code).
-        return false;
+        ensureCapacityInternal(mSize + 1);  // Increments modCount!!
+        mElementData[mSize++] = element;
+        return true;
     }
 
     /**
@@ -232,9 +285,38 @@ public class UnsynchronizedArray<E> implements Array<E> {
      */
     protected void ensureCapacityInternal(int minCapacity) {
         // TODO -- you fill in here.
-        
+        ensureExplicitCapacity(calculateCapacity(mElementData, minCapacity));
     }
+    private void ensureExplicitCapacity(int minCapacity) {
 
+        // overflow-conscious code
+        if (minCapacity - mElementData.length > 0)
+            grow(minCapacity);
+    }
+    private void grow(int minCapacity) {
+        // overflow-conscious code
+        int oldCapacity = mElementData.length;
+        int newCapacity = oldCapacity + (oldCapacity >> 1);
+        if (newCapacity - minCapacity < 0)
+            newCapacity = minCapacity;
+        if (newCapacity - Integer.MAX_VALUE - 8 > 0)
+            newCapacity = hugeCapacity(minCapacity);
+        // minCapacity is usually close to size, so this is a win:
+        mElementData = Arrays.copyOf(mElementData, newCapacity);
+    }
+    private static int hugeCapacity(int minCapacity) {
+        if (minCapacity < 0) // overflow
+            throw new OutOfMemoryError();
+        return (minCapacity > Integer.MAX_VALUE - 8) ?
+                Integer.MAX_VALUE :
+                Integer.MAX_VALUE - 8;
+    }
+    private static int calculateCapacity(Object[] elementData, int minCapacity) {
+        if (elementData == EMPTY_ELEMENTDATA) {
+            return Math.max(DEFAULT_CAPACITY, minCapacity);
+        }
+        return minCapacity;
+    }
     /**
      * @return a reference to the underlying unsynchronized array
      */
@@ -315,9 +397,9 @@ public class UnsynchronizedArray<E> implements Array<E> {
     public Iterator<E> iterator() {
         if (isGraduate(Assignment1a) || isUndergraduate(Assignment1b)) {
             // TODO -- you fill in here replacing this statement with your solution.
-            return null;
+            return new ArrayIterator();
         } else {
-            return null;
+            return new ArrayIterator();
         }
     }
 
@@ -332,21 +414,10 @@ public class UnsynchronizedArray<E> implements Array<E> {
         // This method is a no-op in Assignment 1a.
         if (isAssignment(Assignment1b)) {
             // TODO - you fill in here (this implementation can use a for loop).
-            
-
-            /*
-            // Create a stream of the elements indexes.
-            mElementData = IntStream.range(0, mSize)
-
-                    // Get element cast to E.
-                    .mapToObj(i -> (E) mElementData[i])
-
-                    // Apply the operator to each element.
-                    .map(operator)
-
-                    // Collect all elements in an array.
-                    .toArray();
-            */
+            for(int i = 0; i < mSize; i++){
+                E oldValue = (E)mElementData[i];
+                mElementData[i] = operator.apply(oldValue);
+            }
         }
     }
 
@@ -368,19 +439,16 @@ public class UnsynchronizedArray<E> implements Array<E> {
         if (isGraduate(Assignment1a)) {
             // TODO - Graduate students you fill in here
             //  using a for-each loop for assignment 1a.
-            
+            Iterator<E> it = iterator();
+            while (it.hasNext()){
+                action.accept(it.next());
+            }
         } else if (isGraduate(Assignment1b)) {
             // TODO - Graduate students you fill in here using the
             //  Java stream forEach() method for assignment 1b.
-            
+            this.stream().forEach(action);
         } else if (isUndergraduate(Assignment1a)) {
-            // TODO - Undergraduate students you fill in here using
-            //  a simple for loop for assignment 1a.
-            
         } else if (isUndergraduate(Assignment1b)) {
-            // TODO - Undergraduate students you fill in here
-            //  using a for-each loop for assignment 1b.
-            
         } else {
             throw new IllegalStateException("unreachable");
         }
@@ -394,9 +462,9 @@ public class UnsynchronizedArray<E> implements Array<E> {
      * @return null (not implemented in this base class)
      */
     public Spliterator<E> spliterator() {
-        if (isGraduate(Assignment1b) || isUndergraduate(Assignment2a)) {
+        if (isGraduate(Assignment1b)) {
             // TODO - you fill in here if your assignment matches either condition.
-            return null;
+            return new ArraySpliterator<>(this, 0, -1);
         } else {
             throw new IllegalStateException("This exception should never occur.");
         }
@@ -425,14 +493,13 @@ public class UnsynchronizedArray<E> implements Array<E> {
          * Current position in the Array (defaults to 0).
          */
         // TODO - you fill in here.
-        
+        int cursor = 0;
 
         /**
          * Index of last element returned; -1 if no such element.
          */
         // TODO - you fill in here.
-        
-
+        int lastRet = -1;
         /**
          * @return True if the iteration has more elements that
          * haven't been iterated through yet, else false.
@@ -440,7 +507,7 @@ public class UnsynchronizedArray<E> implements Array<E> {
         @Override
         public boolean hasNext() {
             // TODO - you fill in here (replace 'return false' with proper code).
-            return false;
+            return cursor != mSize;
         }
 
         /**
@@ -450,7 +517,12 @@ public class UnsynchronizedArray<E> implements Array<E> {
         @Override
         public E next() {
             // TODO - you fill in here (replace 'return null' with proper code).
-            return null;
+            int i = cursor;
+            if(mSize == 0 || i >= mSize){
+                throw new NoSuchElementException();
+            }
+            cursor++;
+            return (E) mElementData[lastRet = i];
         }
 
         /**
@@ -463,8 +535,17 @@ public class UnsynchronizedArray<E> implements Array<E> {
          */
         @Override
         public void remove() {
-            // TODO - you fill in here
-            
+            // TODO - you fill in here.
+            if(lastRet < 0){
+                throw new IllegalStateException();
+            }
+            try {
+                UnsynchronizedArray.this.remove(lastRet);
+                cursor = lastRet;
+                lastRet = -1;
+            }catch (IndexOutOfBoundsException ex) {
+                throw new ConcurrentModificationException();
+            }
         }
     }
 }
